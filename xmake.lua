@@ -2,6 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 target("JsonParser")
 set_kind("binary")
+set_toolchains("gcc-13")
 set_languages("c++20")
 add_files("src/*.cpp")
 
