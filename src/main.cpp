@@ -197,21 +197,59 @@ void dovisit(JSONObject const& school) {
                school.inner);
 }
 
-int main() {
-    std::string_view str = R"JSON({
-    "work": 996, 
-    "school": [985, [211, 996]]
- })JSON";
+// struct Function {
+//     void operator()(int val) const {
+//         print("int is:", val);
+//     }
 
+//     void operator()(double val) const {
+//         print("double is:", val);
+//     }
+
+//     void operator()(std::string val) const {
+//         print("string is:", val);
+//     }
+
+//     template <class T>
+//     void operator()(T val) const {
+//         print("unknown object is:", val);
+//     }
+// };
+
+template <class... Fs>
+struct overloaded : Fs... {
+    using Fs::operator()...;
+};
+
+template <class... Fs>
+overloaded(Fs...) -> overloaded<Fs...>;
+
+int main() {
+    //    std::string_view str = R"JSON({
+    //    "work": 996,
+    //    "school": [985, [211, 996]]
+    // })JSON";
+
+    std::string_view str = R"JSON(985.211)JSON";
     auto [obj, eaten] = parse(str);
     print(obj);
 
-    auto const& dict = obj.get<JSONDict>();
-    print("The capitalist make me work in", dict.at("work").get<int>());
-
-    auto const& school = dict.at("school");
-
-    dovisit(school);
+    std::visit(
+        overloaded{
+            [&](int val) {
+                print("int is:", val);
+            },
+            [&](double val) {
+                print("double is:", val);
+            },
+            [&](std::string val) {
+                print("string is:", val);
+            },
+            [&](auto val) {
+                print("unknown object is:", val);
+            },
+        },
+        obj.inner);
 
     return 0;
 }
