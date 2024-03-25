@@ -62,6 +62,9 @@ char unescaped_char(char c) {
 std::pair<JSONObject, size_t> parse(std::string_view json) {
     if (json.empty()) {
         return {JSONObject{std::nullptr_t{}}, 0};
+    } else if (size_t off = json.find_first_not_of(" \n\t\r\v\f\0"); off != 0 && off != json.npos) {
+        auto [obj, eaten] = parse(json.substr(off));
+        return {std::move(obj), eaten + off};
     } else if ('0' <= json[0] && json[0] <= '9' || json[0] == '+' || json[0] == '-') {
         std::regex num_re{"[+-]?[0-9]+(\\.[0-9]*)?([eE][+-]?[0-9]+)?"};
         std::cmatch match;
@@ -163,7 +166,10 @@ std::pair<JSONObject, size_t> parse(std::string_view json) {
 }
 
 int main() {
-    std::string_view str = R"JSON({"work":996,"school":[985,211]})JSON";
+    std::string_view str = R"JSON({
+    "work": 996, 
+    "school": {"hello": 985, "world": 211},
+ })JSON";
 
     auto [obj, eaten] = parse(str);
     print(obj);
