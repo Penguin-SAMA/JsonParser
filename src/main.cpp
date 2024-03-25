@@ -9,20 +9,40 @@
 #include <variant>
 #include <vector>
 
+struct JSONObject;
+
+using JSONDict = std::unordered_map<std::string, JSONObject>;
+using JSONList = std::vector<JSONObject>;
+
 struct JSONObject {
     std::variant<
-        std::nullptr_t,                             // null
-        bool,                                       // true
-        int,                                        // 42
-        double,                                     // 3.14
-        std::string,                                // "hello"
-        std::vector<JSONObject>,                    // [42, "hello"]
-        std::unordered_map<std::string, JSONObject> // {"hello": 985, "wrold":211}
+        std::nullptr_t, // null
+        bool,           // true
+        int,            // 42
+        double,         // 3.14
+        std::string,    // "hello"
+        JSONList,       // [42, "hello"]
+        JSONDict        // {"hello": 985, "wrold":211}
         >
         inner;
 
     void do_print() const {
         printnl(inner);
+    }
+
+    template <class T>
+    bool is() const {
+        return std::holds_alternative<T>(inner);
+    }
+
+    template <class T>
+    T const& get() const {
+        return std::get<T>(inner);
+    }
+
+    template <class T>
+    T& get() {
+        return std::get<T>(inner);
     }
 };
 
@@ -164,14 +184,34 @@ std::pair<JSONObject, size_t> parse(std::string_view json) {
 
     return {JSONObject{std::nullptr_t{}}, 0};
 }
+void dovisit(JSONObject const& school) {
+    std::visit([](auto const& school) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(school)>, JSONList>) {
+            for (auto const& subschool : school) {
+                dovisit(subschool);
+            }
+        } else {
+            print("I purchased my diploma from", school);
+        }
+    },
+               school.inner);
+}
 
 int main() {
     std::string_view str = R"JSON({
     "work": 996, 
-    "school": {"hello": 985, "world": 211},
+    "school": [985, [211, 996]]
  })JSON";
 
     auto [obj, eaten] = parse(str);
     print(obj);
+
+    auto const& dict = obj.get<JSONDict>();
+    print("The capitalist make me work in", dict.at("work").get<int>());
+
+    auto const& school = dict.at("school");
+
+    dovisit(school);
+
     return 0;
 }
